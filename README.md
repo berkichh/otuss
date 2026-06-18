@@ -299,8 +299,8 @@ vim /etc/net/ifaces/gre1/options
 
 TYPE=iptun
 TUNTYPE=gre
-TUNLOCAL=172.16.2.2
-TUNREMOTE=172.16.1.2
+TUNLOCAL=172.16.60.2
+TUNREMOTE=172.16.50.2
 TUNTTL=64
 TUNOPTIONS='ttl 64'
 
@@ -315,8 +315,8 @@ vim /etc/net/ifaces/gre1/options
 
 TYPE=iptun
 TUNTYPE=gre
-TUNLOCAL=172.16.1.2
-TUNREMOTE=172.16.2.2
+TUNLOCAL=172.16.50.2
+TUNREMOTE=172.16.60.2
 TUNTTL=64
 TUNOPTIONS='ttl 64'
 
@@ -438,7 +438,7 @@ sed -i 's/AUTO_LOCAL_RESOLVER=yes/AUTO_LOCAL_RESOLVER=no/' /etc/sysconfig/dnsmas
 nano /etc/dnsmasq.conf
 
 port=0
-interface=vlan200
+interface=vlan213
 listen-address=192.168.200.1
 dhcp-authoritative
 dhcp-range=interface:vlan213,192.168.200.2,192.168.200.2,255.255.255.240,6h
@@ -562,12 +562,34 @@ host br-rtr
 
 host -t PTR 192.168.100.2
 
+
+
 apt-get update && apt-get install tzdata -y
 
 timedatectl set-timezone Asia/Novosibirsk
 
 timedatectl
 
+
+Стенд Модуля 2 установленный из скрипта имеет недостаток,
+он проявляется при выполнении Задания №5
+
+Вам необходимо самостоятельно включить SSH доступ на машинах
+HQ-RTR
+BR-RTR
+HQ-SRV
+HQ-CLI
+
+Для этого на машинах выполняем следующие действия
+
+Редактируем файл sshd_config
+
+vim /etc/openssh/sshd_config
+
+Добавляем одну строчку в самое начало
+Port 2013
+
+systemctl enable --now sshd
 =========BR-SRV=========
 
 ------------SambaDC------------
@@ -687,7 +709,6 @@ sudo cat /etc/resolv.conf
 *вводим пароль*
 sudo grep
 *вводим пароль*
-
 =====HQ-SRV=====
 
 ==================RAID==================
@@ -712,21 +733,21 @@ parted /dev/sdb
 
 mdadm --create /dev/md3 --level=5 --raid-devices=3 /dev/sdb1 /dev/sdc1 /dev/sdd1
 
-mdadm --detail --scan >> /etc/mdadm.conf
+echo "DEVICE partitions" > /etc/mdadm.conf
 
-mdadm --detail --scan
+mdadm --detail --scan --verbose >> /etc/mdadm.conf
 
 mkfs.ext4 /dev/md3
 
-mkdir /raid
+mkdir -p /raid
 
-cp /etc/fstab /etc/fstab.back
+cp /etc/fstab /etc/fstab.bak
 
-echo "/dev/md3 /raid ext4 defaults 0 0 " >> /etc/fstab
+echo "/dev/md3 /raid ext4 defaults 0 0" >> /etc/fstab
 
-mount -av
+mount -a
 
-df -T
+df -Th
 
 ==================NFS==================
 apt-get update && apt-get install nfs-server nfs-utils -y
@@ -807,7 +828,6 @@ chronyc sources
 MS Name/IP address         Stratum Poll Reach LastRx Last sample               
 ===============================================================================
 ^* 172.16.1.1                    5   6    17     1  +1438ns[  +43us] +/-   38ms
-
 ===BR-SRV===
 
 apt-get install ansible sshpass -y
@@ -839,7 +859,6 @@ HQ-CLI ansible_user=user ansible_password=resu ansible_port=2013
 (все должны ответить "pong")
 
 ansible all -m ping
-
 ===BR-SRV===
 
 apt-get install docker-engine docker-compose-v2 -y
@@ -886,8 +905,8 @@ services:
     environment: 
       DB_HOST: database
       DB_PORT: 3306
-      DB_NAME: testdb
-      DB_USER: testc
+      DB_NAME: testdb3
+      DB_USER: test3c
       DB_PASS: P@ssw0rd
       DB_TYPE: maria
     depends_on: 
@@ -919,6 +938,8 @@ docker rm -f $(docker ps -qa)
 Проверяем, что сайт перестал работать
 
 docker compose up -d
+
+Проверяем, что сайт поднялся и наша запись осталась
 ===HQ-SRV===
 
 mount -o loop /dev/sr0 /mnt/ -v
@@ -998,9 +1019,6 @@ nft list ruleset > /etc/nftables/nftables.nft
 systemctl restart nftables
 
 nft list ruleset
-
-================================
-
 ===ISP===
 
 apt-get update && apt-get install nginx -y
@@ -1012,7 +1030,7 @@ server {
 listen 80;
 server_name web.au-team.irpo;
 location / {
-proxy_pass http://172.16.1.10:8080;
+proxy_pass http://172.16.1.10:8083;
 proxy_set_header Host $host;
 proxy_set_header X-Real-IP $remote_addr;
 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -1046,7 +1064,7 @@ systemctl status nginx
 
 apt-get install apache2-htpasswd -y
 
-htpasswd -c /etc/nginx/.htpasswd Kazimirс
+htpasswd -c /etc/nginx/.htpasswd Kazimir
 # Вводим пароль P@ssw0rd (2 раза)
 
 cat /etc/nginx/.htpasswd
@@ -1058,11 +1076,15 @@ systemctl restart nginx
 
 =======================================
 Переходим на HQ-CLI, заходим по http://web.au-team.irpo/
-Логин: Kazimirс
+Логин: Kazimir
 Пароль: P@ssw0rd
 
 Дальше заходим по http://docker.au-team.irpo/
 
 Если всё открывается, значит задание выполнено верно.
 
+===HQ-CLI===
+
 apt-get update && apt-get install yandex-browser-stable -y
+
+• Установку браузера отметьте в отчёте.
