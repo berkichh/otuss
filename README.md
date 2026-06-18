@@ -20,8 +20,8 @@ hostnamectl set-hostname br-srv.au-team.irpo; exec bash
 mkdir -p /etc/net/ifaces/enp7s{2,3}
 
 echo 'TYPE=eth' | tee /etc/net/ifaces/enp7s{2,3}/options
-echo '172.16.1.1/28' > /etc/net/ifaces/enp7s2/ipv4address
-echo '172.16.2.1/28' > /etc/net/ifaces/enp7s3/ipv4address
+echo '172.16.50.1/28' > /etc/net/ifaces/enp7s2/ipv4address
+echo '172.16.60.1/28' > /etc/net/ifaces/enp7s3/ipv4address
 
 systemctl restart network
 
@@ -38,9 +38,9 @@ echo 'TYPE=eth' | tee /etc/net/ifaces/enp7s{1,2}/options
 
 -------to ISP------
 
-echo '172.16.2.2/28' > /etc/net/ifaces/enp7s1/ipv4address
+echo '172.16.60.2/28' > /etc/net/ifaces/enp7s1/ipv4address
 
-echo 'default via 172.16.2.1' > /etc/net/ifaces/enp7s1/ipv4route
+echo 'default via 172.16.60.1' > /etc/net/ifaces/enp7s1/ipv4route
 
 echo 'nameserver 8.8.8.8' > /etc/net/ifaces/enp7s1/resolv.conf
 
@@ -83,29 +83,29 @@ ip -c --br a
 
 
 ===ИНТЕРФЕЙСЫ HQ-RTR===
-mkdir -p /etc/net/ifaces/{enp7s{1,2},vlan{100,200,999},gre1}
+mkdir -p /etc/net/ifaces/{enp7s{1,2},vlan{113,213,813},gre1}
 
 echo 'TYPE=eth' | tee /etc/net/ifaces/enp7s{1,2}/options
 
 -------to ISP------
 
-echo '172.16.1.2/28' > /etc/net/ifaces/enp7s1/ipv4address
+echo '172.16.50.2/28' > /etc/net/ifaces/enp7s1/ipv4address
 
-echo 'default via 172.16.1.1' > /etc/net/ifaces/enp7s1/ipv4route
+echo 'default via 172.16.50.1' > /etc/net/ifaces/enp7s1/ipv4route
 
 echo 'nameserver 8.8.8.8' > /etc/net/ifaces/enp7s1/resolv.conf
 
 --------настройка VLAN-----------
 
-echo $'100\n200\n999' | xargs -i bash -c 'echo -e "TYPE=vlan\nHOST=enp7s2\nVID={}" > /etc/net/ifaces/vlan{}/options'
+echo $'113\n213\n813' | xargs -i bash -c 'echo -e "TYPE=vlan\nHOST=enp7s2\nVID={}" > /etc/net/ifaces/vlan{}/options'
 
-cat /etc/net/ifaces/vlan999/options
+cat /etc/net/ifaces/vlan813/options
 
-echo '192.168.100.1/27' > /etc/net/ifaces/vlan100/ipv4address
+echo '192.168.100.1/27' > /etc/net/ifaces/vlan113/ipv4address
 
-echo '192.168.200.1/24' > /etc/net/ifaces/vlan200/ipv4address
+echo '192.168.200.1/24' > /etc/net/ifaces/vlan213/ipv4address
 
-echo '192.168.99.1/29' > /etc/net/ifaces/vlan999/ipv4address
+echo '192.168.99.1/29' > /etc/net/ifaces/vlan813/ipv4address
 
 -------включение маршрутизации---------
 
@@ -179,12 +179,11 @@ nft list ruleset
 
 sysctl net.ipv4.ip_forward
 
-ping -c4 ya.ru
-
+ping -c4 ya.ru 
 
 ==========HQ-SRV==========
 
-useradd -u 2026 sshuser
+useradd -u 2013 sshuser
 
 echo "sshuser:P@ssw0rd" | chpasswd
 
@@ -202,7 +201,7 @@ exit
 
 ==========BR-SRV==========
 
-useradd -u 2026 sshuser
+useradd -u 2013 sshuser
 
 echo "sshuser:P@ssw0rd" | chpasswd
 
@@ -249,11 +248,12 @@ echo "WHEEL_USERS ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/net_admin
 su -l net_admin
 
 sudo id
+
 =====HQ-SRV=====
 
 vim /etc/openssh/sshd_config
 
-Port 2026
+Port 2013
 AllowUsers sshuser
 MaxAuthTries 2
 Banner /etc/openssh/ssh_banner
@@ -267,7 +267,7 @@ systemctl restart sshd
 
 Проверка:
 С машины HQ-RTR подключаемся по SSH к машине HQ-SRV
-ssh -p 2026 sshuser@192.168.100.2
+ssh -p 2013 sshuser@192.168.100.2
 
 exit
 
@@ -275,7 +275,7 @@ exit
 
 vim /etc/openssh/sshd_config
 
-Port 2026
+Port 2013
 AllowUsers sshuser
 MaxAuthTries 2
 Banner /etc/openssh/ssh_banner
@@ -289,7 +289,7 @@ systemctl restart sshd
 
 Проверка:
 С машины BR-RTR подключаемся по SSH к машине BR-SRV
-ssh -p 2026 sshuser@192.168.0.2
+ssh -p 2013 sshuser@192.168.0.2
 
 exit
 
@@ -345,15 +345,15 @@ interface gre1
  no ip ospf passive
 exit
 !
-interface vlan100
+interface vlan113
  ip ospf area 0
 exit
 !
-interface vlan200
+interface vlan213
  ip ospf area 0
 exit
 !
-interface vlan999
+interface vlan813
  ip ospf area 0
 exit
 !
@@ -429,7 +429,7 @@ apt-get install dnsmasq -y
 
 rm -f /etc/net/ifaces/enp7s1/resolv.conf
 
-echo $'search au-team.irpo\nnameserver 192.168.100.2' > /etc/net/ifaces/vlan100/resolv.conf
+echo $'search au-team.irpo\nnameserver 192.168.100.2' > /etc/net/ifaces/vlan113/resolv.conf
 
 --------DHCP------------
 
@@ -441,7 +441,7 @@ port=0
 interface=vlan200
 listen-address=192.168.200.1
 dhcp-authoritative
-dhcp-range=interface:vlan200,192.168.200.2,192.168.200.2,255.255.255.240,6h
+dhcp-range=interface:vlan213,192.168.200.2,192.168.200.2,255.255.255.240,6h
 dhcp-option=3,192.168.200.1
 dhcp-option=6,192.168.100.2
 leasefile-ro
@@ -455,8 +455,6 @@ systemctl enable --now dnsmasq ; ss -lun | grep 67
 systemctl restart network
 
 cat /etc/resolv.conf
-
-
 ===HQ-SRV===
 
 apt-get update && apt-get install bind bind-utils nano -y
@@ -519,8 +517,8 @@ hq-srv  IN A     192.168.100.2
 hq-cli  IN A     192.168.200.2
 br-rtr  IN A     192.168.0.1
 br-srv  IN A     192.168.0.2
-docker  IN A     172.16.1.1
-web     IN A     172.16.2.1
+docker  IN A     172.16.50.1
+web     IN A     172.16.60.1
 
 
 
@@ -705,21 +703,26 @@ parted /dev/sdb
 	mkpart primary 1MiB 100%
 	set 1 raid on
 	print
+	select /dev/sdd
+	mklabel msdos
+	mkpart primary 1MiB 100%
+	set 1 raid on
+	print
 	quit
 
-mdadm --create /dev/md0 --level=0 --raid-devices=2 /dev/sdb1 /dev/sdc1
+mdadm --create /dev/md3 --level=5 --raid-devices=3 /dev/sdb1 /dev/sdc1 /dev/sdd1
 
 mdadm --detail --scan >> /etc/mdadm.conf
 
 mdadm --detail --scan
 
-mkfs.ext4 /dev/md0
+mkfs.ext4 /dev/md3
 
 mkdir /raid
 
 cp /etc/fstab /etc/fstab.back
 
-echo "/dev/md0 /raid ext4 defaults 0 0 " >> /etc/fstab
+echo "/dev/md3 /raid ext4 defaults 0 0 " >> /etc/fstab
 
 mount -av
 
@@ -771,7 +774,7 @@ control chrony server
 
 sed -i 's/pool pool.ntp.org iburst/pool pool.ntp.org iburst prefer minstratum 4/' /etc/chrony.conf | grep pool /etc/chrony.conf
 
-sed -i 's/\#local stratum 10/local stratum 5/' /etc/chrony.conf | grep "local stratum" /etc/chrony.conf
+sed -i 's/\#local stratum 10/local stratum 8/' /etc/chrony.conf | grep "local stratum" /etc/chrony.conf
 
 systemctl restart chronyd
 ===============================
@@ -805,7 +808,6 @@ MS Name/IP address         Stratum Poll Reach LastRx Last sample
 ===============================================================================
 ^* 172.16.1.1                    5   6    17     1  +1438ns[  +43us] +/-   38ms
 
-
 ===BR-SRV===
 
 apt-get install ansible sshpass -y
@@ -826,10 +828,10 @@ inventory       = /etc/ansible/hosts
 
 vim /etc/ansible/hosts
 
-HQ-SRV ansible_user=user ansible_password=resu ansible_port=2026
-HQ-RTR ansible_user=net_admin ansible_password=P@ssw0rd ansible_port=2026
-BR-RTR ansible_user=net_admin ansible_password=P@ssw0rd ansible_port=2026
-HQ-CLI ansible_user=user ansible_password=resu ansible_port=2026
+HQ-SRV ansible_user=user ansible_password=resu ansible_port=2013
+HQ-RTR ansible_user=net_admin ansible_password=P@ssw0rd ansible_port=2013
+BR-RTR ansible_user=net_admin ansible_password=P@ssw0rd ansible_port=2013
+HQ-CLI ansible_user=user ansible_password=resu ansible_port=2013
 
 =====================================
 
@@ -868,19 +870,19 @@ services:
     ports: 
       - "3306:3306"
     environment:
-      MARIADB_DATABASE: testdb
-      MARIADB_USER: testc
+      MARIADB_DATABASE: testdb3
+      MARIADB_USER: test3c
       MARIADB_PASSWORD: P@ssw0rd
       MARIADB_ROOT_PASSWORD: P@ssw0rd
     volumes:
       - db_data:/var/lib/mysql
       
   app:
-    container_name: tespapp
+    container_name: site
     image: site:latest
     restart: always
     ports: 
-      - "8080:8000"
+      - "8083:8000"
     environment: 
       DB_HOST: database
       DB_PORT: 3306
@@ -901,9 +903,9 @@ docker compose up -d
 
 docker ps
 
-ss -ltnp4 | grep 8080
+ss -ltnp4 | grep 8083
 
-Переходим на HQ-CLI, заходим по 192.168.3.10:8080
+Переходим на HQ-CLI, заходим по 192.168.3.10:8083
 
 Пометка: По заданию мы должны попадать на сайт через домен
 docker.au-team.irpo, но мы пока этого сделать не можем,
@@ -917,10 +919,6 @@ docker rm -f $(docker ps -qa)
 Проверяем, что сайт перестал работать
 
 docker compose up -d
-
-Проверяем, что сайт поднялся и наша запись осталась
-
-
 ===HQ-SRV===
 
 mount -o loop /dev/sr0 /mnt/ -v
@@ -938,9 +936,9 @@ mariadb -e "CREATE DATABASE webdb;"
 
 mariadb -e "
 
-CREATE USER 'web'@'localhost' IDENTIFIED BY 'P@ssw0rd';
+CREATE USER 'web3'@'localhost' IDENTIFIED BY 'P@ssw0rd';
 
-GRANT ALL PRIVILEGES ON webdb.* TO 'web'@'localhost';
+GRANT ALL PRIVILEGES ON webdb.* TO 'web3'@'localhost';
 
 "
 
@@ -953,7 +951,7 @@ vim /var/www/html/index.php
 
 $servername = "localhost";
 
-$username = "web";
+$username = "web3";
 
 $password = "P@ssw0rd";
 
@@ -974,9 +972,9 @@ web.au-team.irpo + аутенфикация по паролю,
 
 nft add chain nat prerouting { type nat hook prerouting priority dstnat \; }
 
-nft add rule nat prerouting iif "enp7s1" tcp dport 2026 dnat to 192.168.1.10
+nft add rule nat prerouting iif "enp7s1" tcp dport 2013 dnat to 192.168.1.10
 
-nft add rule nat prerouting iif "enp7s1" tcp dport 8080 dnat to 192.168.1.10:80
+nft add rule nat prerouting iif "enp7s1" tcp dport 8083 dnat to 192.168.1.10:80
 
 nft list ruleset
 
@@ -991,7 +989,7 @@ nft list ruleset
 
 nft add chain nat prerouting { type nat hook prerouting priority dstnat \; }
 
-nft add rule nat prerouting iif "enp7s1" tcp dport { 8080, 2026 } dnat to 192.168.3.10
+nft add rule nat prerouting iif "enp7s1" tcp dport { 8083, 2013 } dnat to 192.168.3.10
 
 nft list ruleset
 
@@ -1001,6 +999,7 @@ systemctl restart nftables
 
 nft list ruleset
 
+================================
 
 ===ISP===
 
@@ -1026,7 +1025,7 @@ server {
 listen 80;
 server_name docker.au-team.irpo;
 location / {
-proxy_pass http://172.16.2.10:8080;
+proxy_pass http://172.16.2.10:8083;
 proxy_set_header Host $host;
 proxy_set_header X-Real-IP $remote_addr;
 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -1047,7 +1046,7 @@ systemctl status nginx
 
 apt-get install apache2-htpasswd -y
 
-htpasswd -c /etc/nginx/.htpasswd WEB
+htpasswd -c /etc/nginx/.htpasswd Kazimirс
 # Вводим пароль P@ssw0rd (2 раза)
 
 cat /etc/nginx/.htpasswd
@@ -1059,15 +1058,11 @@ systemctl restart nginx
 
 =======================================
 Переходим на HQ-CLI, заходим по http://web.au-team.irpo/
-Логин: WEB
+Логин: Kazimirс
 Пароль: P@ssw0rd
 
 Дальше заходим по http://docker.au-team.irpo/
 
 Если всё открывается, значит задание выполнено верно.
 
-===HQ-CLI===
-
 apt-get update && apt-get install yandex-browser-stable -y
-
-• Установку браузера отметьте в отчёте.
